@@ -52,35 +52,32 @@ func checkNodeAvailability(node swarm.Node) nagios.State {
 
 func checkNagiosState(nodes []swarm.Node) (nagios.State, string) {
 	state := nagios.StateOk
-	var hosts []string
+	var messages []string
 	var performances []string
 	for _, node := range nodes {
 		nodeState := checkNodeState(node)
 		nodeAvailavility := checkNodeAvailability(node)
 		s := nagios.ResolveState(nodeState, nodeAvailavility)
 		if s != nagios.StateOk {
-			hosts = append(
-				hosts,
-				fmt.Sprintf(
-					"%s(%s|%s)",
-					node.Description.Hostname,
-					node.Status.State,
-					node.Spec.Availability,
-				),
-			)
-
+			messages = append(messages, makeNodeMessage(node))
 		} else {
-			performances = append(
-				performances,
-				fmt.Sprintf("%s=%d;%d;%d;%d;%d", node.Description.Hostname, 1, 0, 0, 0, 1),
-			)
+			performances = append(performances, makeNodePerformance(node))
 		}
 		state = nagios.ResolveState(state, s)
 	}
-	o := fmt.Sprintf(
-		"%s | %s ",
-		strings.Join(hosts, ", "),
-		strings.Join(performances, " "),
-	)
+	o := output.MakeOutput(strings.Join(messages, ", "), performances)
 	return state, o
+}
+
+func makeNodeMessage(node swarm.Node) string {
+	return fmt.Sprintf(
+		"%s(%s|%s)",
+		node.Description.Hostname,
+		node.Status.State,
+		node.Spec.Availability,
+	)
+}
+
+func makeNodePerformance(node swarm.Node) string {
+	return fmt.Sprintf("%s=%d;%d;%d;%d;%d", node.Description.Hostname, 1, 0, 0, 0, 1)
 }

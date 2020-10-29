@@ -37,7 +37,7 @@ func Service(c *cli.Context) error {
 }
 
 func checkServiceStatus(ctx context.Context, services []swarm.Service) (nagios.State, string) {
-	var problem []string
+	var messages []string
 	var performances []string
 	state := nagios.StateOk
 	i := ctx.Value("dc")
@@ -60,28 +60,15 @@ func checkServiceStatus(ctx context.Context, services []swarm.Service) (nagios.S
 		desired := int(*service.Spec.Mode.Replicated.Replicas)
 		actual := len(runningTasks)
 		if desired > actual {
-			problem = append(problem, fmt.Sprintf("%s(%d/%d)", service.Spec.Name, actual, desired))
+			messages = append(messages, makeServiceMessage(service, actual, desired))
 			state = nagios.ResolveState(state, nagios.StateCritical)
 		} else if desired < actual {
-			problem = append(problem, fmt.Sprintf("%s(%d/%d)", service.Spec.Name, actual, desired))
+			messages = append(messages, makeServiceMessage(service, actual, desired))
 			state = nagios.ResolveState(state, nagios.StateWarning)
 		}
-		performances = append(
-			performances,
-			fmt.Sprintf(
-				"%s=%d;;;%d;%d",
-				service.Spec.Name,
-				actual,
-				0,
-				desired,
-			),
-		)
+		performances = append(performances, makeServicePerformance(service, actual, desired))
 	}
-	o := fmt.Sprintf(
-		"%s | %s ",
-		strings.Join(problem, ", "),
-		strings.Join(performances, " "),
-	)
+	o := output.MakeOutput(strings.Join(messages, ", "), performances)
 	return state, o
 }
 
@@ -92,4 +79,12 @@ func filterTask(tasks []swarm.Task) (filtered []swarm.Task) {
 		}
 	}
 	return filtered
+}
+
+func makeServiceMessage(service swarm.Service, actual int, desired int) string {
+	return fmt.Sprintf("%s(%d/%d)", service.Spec.Name, actual, desired)
+}
+
+func makeServicePerformance(service swarm.Service, actual int, desired int) string {
+	return fmt.Sprintf("%s=%d;;;%d;%d", service.Spec.Name, actual, 0, desired)
 }
