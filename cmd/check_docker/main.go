@@ -20,6 +20,7 @@ func main() {
 				Name:    "service",
 				Aliases: []string{"s"},
 				Action:  cmd.Service,
+				Flags: cmd.GetServiceFlags(),
 			},
 		},
 	}

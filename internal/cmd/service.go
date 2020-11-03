@@ -11,19 +11,43 @@ import (
 	"github.com/tunarider/check_docker/pkg/nagios"
 	"github.com/urfave/cli/v2"
 	"strings"
+	"regexp"
 )
 
+func GetServiceFlags() []cli.Flag {
+	return []cli.Flag{
+		&cli.StringFlag{
+			Name: "filter",
+			Aliases: []string{"f"},
+		},
+		&cli.StringSliceFlag{
+			Name: "exclude",
+			Aliases: []string{"e"},
+		},
+	}
+}
+
 func Service(c *cli.Context) error {
+	var services []swarm.Service
+	cf := c.String("filter")
+	ex := c.StringSlice("exclude")
 	ctx := context.Background()
 	dc, err := client.NewEnvClient()
 	ctx = context.WithValue(ctx, "dc", dc)
 	if err != nil {
 		return output.Unknown("Failed to connect to Docker")
 	}
-	services, err := dc.ServiceList(ctx, types.ServiceListOptions{})
+	f := filters.NewArgs()
+	f.Add("name", cf)
+	s, err := dc.ServiceList(ctx, types.ServiceListOptions{Filters: f})
 	if err != nil {
 		return output.Unknown("Failed to receive Docker service list")
 	}
+	for _, service := range s {
+		if !isExclude(service, ex) {
+			services = append(services, service)
+		}
+	} 
 	state, o := checkServiceStatus(ctx, services)
 	switch state {
 	case nagios.StateOk:
@@ -34,6 +58,16 @@ func Service(c *cli.Context) error {
 		return output.Critical(o)
 	}
 	return nil
+}
+
+func isExclude(service swarm.Service, excludes []string) bool {
+	for _, exclude := range excludes {
+		match, _ := regexp.MatchString(exclude, service.Spec.Name)
+		if match {
+			return true
+		}
+	}
+	return false
 }
 
 func checkServiceStatus(ctx context.Context, services []swarm.Service) (nagios.State, string) {
