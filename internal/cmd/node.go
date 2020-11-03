@@ -60,8 +60,9 @@ func checkNagiosState(nodes []swarm.Node) (nagios.State, string) {
 		s := nagios.ResolveState(nodeState, nodeAvailavility)
 		if s != nagios.StateOk {
 			messages = append(messages, makeNodeMessage(node))
+			performances = append(performances, makeNodePerformance(node, 0))
 		} else {
-			performances = append(performances, makeNodePerformance(node))
+			performances = append(performances, makeNodePerformance(node, 1))
 		}
 		state = nagios.ResolveState(state, s)
 	}
@@ -78,6 +79,6 @@ func makeNodeMessage(node swarm.Node) string {
 	)
 }
 
-func makeNodePerformance(node swarm.Node) string {
-	return fmt.Sprintf("%s=%d;%d;%d;%d;%d", node.Description.Hostname, 1, 0, 0, 0, 1)
+func makeNodePerformance(node swarm.Node, status int) string {
+	return fmt.Sprintf("%s=%d;;;%d;%d", node.Description.Hostname, status, 0, 1)
 }
