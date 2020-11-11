@@ -20,10 +20,10 @@ jobs:
           GOOS: linux
           GOARCH: amd64
       - name: Build(MacOS)
-        run:
-          - mkdir -p ./bin/check_docker-darwin-amd64
-          - go build -v ./cmd/check_docker -o ./bin/check_docker-darwin-amd64/
-          - tar czvf check_docker-darwin-amd64.tar.gz -C bin check_docker-darwin-amd64/
+        run: |
+          mkdir -p ./bin/check_docker-darwin-amd64
+          go build -v ./cmd/check_docker -o ./bin/check_docker-darwin-amd64/
+          tar czvf check_docker-darwin-amd64.tar.gz -C bin check_docker-darwin-amd64/
         env:
           GOOS: darwin
           GOARCH: amd64
