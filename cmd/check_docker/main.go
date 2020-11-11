@@ -7,6 +7,12 @@ import (
 )
 
 func main() {
+	serviceFlags := []cli.Flag{
+		&cli.StringSliceFlag{
+			Name:    "exclude",
+			Aliases: []string{"e"},
+		},
+	}
 	app := cli.App{
 		Name:  "check_docker",
 		Usage: "Check docker status",
@@ -20,7 +26,7 @@ func main() {
 				Name:    "service",
 				Aliases: []string{"s"},
 				Action:  cmd.Service,
-				Flags: cmd.GetServiceFlags(),
+				Flags:   serviceFlags,
 			},
 		},
 	}
