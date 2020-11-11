@@ -3,9 +3,8 @@ on:
   push:
     branches:
       - master
-      - develop
-#    tags:
-#      - 'v*'
+    tags:
+      - 'v*'
 jobs:
   build:
     name: Build
@@ -18,16 +17,20 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
       - name: Build(Linux)
-        run: go build -v ./cmd/check_docker
+        run: |
+          go build -v ./cmd/check_docker
+          mkdir -p ./check_docker-linux-amd64
+          cp ./check_docker ./check_docker-linux-amd64/
+          tar czvf check_docker-linux-amd64.tar.gz ./check_docker-linux-amd64/
         env:
           GOOS: linux
           GOARCH: amd64
       - name: Build(MacOS)
         run: |
           go build -v ./cmd/check_docker
-          cp ./cmd/check_docker/check_docker
           mkdir -p ./check_docker-darwin-amd64
-          tar czvf check_docker-darwin-amd64.tar.gz check_docker-darwin-amd64/
+          cp ./check_docker ./check_docker-darwin-amd64/
+          tar czvf check_docker-darwin-amd64.tar.gz ./check_docker-darwin-amd64/
         env:
           GOOS: darwin
           GOARCH: amd64
@@ -41,16 +44,6 @@ jobs:
           release_name: Release ${{ github.ref }}
           draft: false
           prerelease: false
-      - name: Upload Release Asset(MacOS)
-        id: upload-release-asset-macos
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./bin/check_docker-darwin-amd64.tar.gz
-          asset_name: check_docker-darwin-amd64.tar.gz
-          asset_content_type: application/tar+gzip
       - name: Upload Release Asset(Linux)
         id: upload-release-asset-linux
         uses: actions/upload-release-asset@v1
@@ -58,6 +51,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: check_docker-linux-amd64.tar.gz
+          asset_path: ./check_docker-linux-amd64.tar.gz
           asset_name: check_docker-linux-amd64.tar.gz
+          asset_content_type: application/tar+gzip
+      - name: Upload Release Asset(MacOS)
+        id: upload-release-asset-macos
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./check_docker-darwin-amd64.tar.gz
+          asset_name: check_docker-darwin-amd64.tar.gz
           asset_content_type: application/tar+gzip
