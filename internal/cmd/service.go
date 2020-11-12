@@ -25,27 +25,46 @@ func listServerNames(performances []nagios.Performance) []string {
 	return serviceNames
 }
 
-type serviceMessageResolver func([]nagios.Performance) string
+type serviceMessageResolver func([]swarm.Service, []nagios.Performance) string
 
-func okServiceMessage(performances []nagios.Performance) string {
+func okServiceMessage(_ []swarm.Service, performances []nagios.Performance) string {
 	return nagios.MessageWithPerformance(
 		"No problem",
 		performances,
 	)
 }
 
-func notOkServiceMessage(performances []nagios.Performance) string {
+func notOkServiceMessage(services []swarm.Service, performances []nagios.Performance) string {
 	return nagios.MessageWithPerformance(
-		strings.Join(listServerNames(performances), ", "),
+		strings.Join(listServerNames(filterPerformances(services, performances)), ", "),
 		performances,
 	)
+}
+
+func filterPerformances(services []swarm.Service, performances []nagios.Performance) []nagios.Performance {
+	var ps []nagios.Performance
+	for _, p := range performances {
+		if inService(services, p) {
+			ps = append(ps, p)
+		}
+	}
+	return ps
+}
+
+func inService(services []swarm.Service, performance nagios.Performance) bool {
+	for _, s := range services {
+		if s.Spec.Name == performance.Label {
+			return true
+		}
+	}
+	return false
 }
 
 type serviceResultRenderer func([]swarm.Service, []nagios.Performance) cli.ExitCoder
 
 func serviceRenderer(exitFunc exit.ExitForNagios, msgResolver serviceMessageResolver) serviceResultRenderer {
 	return func(services []swarm.Service, performances []nagios.Performance) cli.ExitCoder {
-		return exitFunc(msgResolver(performances))
+		return exitFunc(msgResolver(services, performances))
 	}
 }
 

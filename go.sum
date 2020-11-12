@@ -29,8 +29,6 @@ github.com/sirupsen/logrus v1.4.1/go.mod h1:ni0Sbl8bgC9z8RoU9G6nDWqqs/fq4eDPysMB
 github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.2.2 h1:bSDNvY7ZPG5RlJ8otE/7V6gMiyenm9RtJ7IUVIAoJ1w=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
-github.com/tunarider/nagios-go-sdk v0.0.0-20201103104310-2b571b032d39 h1:841gMyrDrXsqUNeN7IvnaoQHdJNGY9m8YlrePwd8tcA=
-github.com/tunarider/nagios-go-sdk v0.0.0-20201103104310-2b571b032d39/go.mod h1:R8LxMd1ZfE8tiklMMpp89AEB2Sz6+cEGAMrBSD3L7Eg=
 github.com/tunarider/nagios-go-sdk v0.0.0-20201111044255-cc76602223c9 h1:mQFvEMJ0buaN5hqHIIEeJfN19u+atOD5qxK5FwlVJ1I=
 github.com/tunarider/nagios-go-sdk v0.0.0-20201111044255-cc76602223c9/go.mod h1:R8LxMd1ZfE8tiklMMpp89AEB2Sz6+cEGAMrBSD3L7Eg=
 github.com/urfave/cli/v2 v2.2.0 h1:JTTnM6wKzdA0Jqodd966MVj4vWbbquZykeX1sKbe2C4=
