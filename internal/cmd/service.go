@@ -2,41 +2,22 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 	"github.com/tunarider/check_docker/internal/check"
 	"github.com/tunarider/check_docker/internal/exit"
+	"github.com/tunarider/check_docker/internal/renderer"
 	"github.com/tunarider/nagios-go-sdk/nagios"
 	"github.com/urfave/cli/v2"
 	"regexp"
 	"strings"
 )
 
-func listServerNames(performances []nagios.Performance) []string {
-	var serviceNames []string
-	for _, p := range performances {
-		serviceNames = append(
-			serviceNames,
-			fmt.Sprintf("%s(%d/%d)", p.Label, p.Value, p.Max),
-		)
-	}
-	return serviceNames
-}
-
-type serviceMessageResolver func([]swarm.Service, []nagios.Performance) string
-
-func okServiceMessage(_ []swarm.Service, performances []nagios.Performance) string {
+func notOkServiceMessage(services interface{}, performances []nagios.Performance) string {
+	s := services.([]swarm.Service)
 	return nagios.MessageWithPerformance(
-		"No problem",
-		performances,
-	)
-}
-
-func notOkServiceMessage(services []swarm.Service, performances []nagios.Performance) string {
-	return nagios.MessageWithPerformance(
-		strings.Join(listServerNames(filterPerformances(services, performances)), ", "),
+		strings.Join(renderer.OutputFromPerformances(filterPerformances(s, performances)), ", "),
 		performances,
 	)
 }
@@ -62,22 +43,22 @@ func inService(services []swarm.Service, performance nagios.Performance) bool {
 
 type serviceResultRenderer func([]swarm.Service, []nagios.Performance) cli.ExitCoder
 
-func serviceRenderer(exitFunc exit.ExitForNagios, msgResolver serviceMessageResolver) serviceResultRenderer {
+func serviceRenderer(exitFunc exit.ExitForNagios, msgResolver renderer.MessageResolver) serviceResultRenderer {
 	return func(services []swarm.Service, performances []nagios.Performance) cli.ExitCoder {
 		return exitFunc(msgResolver(services, performances))
 	}
 }
 
-func getServiceRenderer(state nagios.State) serviceResultRenderer {
+func getServiceRendererFunc(state nagios.State) (exit.ExitForNagios, renderer.MessageResolver) {
 	switch state {
 	case nagios.StateOk:
-		return serviceRenderer(exit.Ok, okServiceMessage)
+		return exit.Ok, renderer.NoProblemMessage
 	case nagios.StateWarning:
-		return serviceRenderer(exit.Warning, notOkServiceMessage)
+		return exit.Warning, notOkServiceMessage
 	case nagios.StateCritical:
-		return serviceRenderer(exit.Critical, notOkServiceMessage)
+		return exit.Critical, notOkServiceMessage
 	default:
-		return serviceRenderer(exit.Unknown, notOkServiceMessage)
+		return exit.Unknown, notOkServiceMessage
 	}
 }
 
@@ -112,8 +93,8 @@ func Service(c *cli.Context) error {
 		return exit.Unknown("Failed to receive Docker service list")
 	}
 	services = filterService(services, c.StringSlice("exclude"))
-	getRunngingTasks := check.RunningTaskGetter(ctx, dc)
-	state, badServices, performances := check.CheckServiceStatus(services, getRunngingTasks)
-	rdr := getServiceRenderer(state)
+	getRunningTasks := check.RunningTaskGetter(ctx, dc)
+	state, badServices, performances := check.CheckServiceStatus(services, getRunningTasks)
+	rdr := serviceRenderer(getServiceRendererFunc(state))
 	return rdr(badServices, performances)
 }

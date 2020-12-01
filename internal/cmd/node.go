@@ -8,6 +8,7 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/tunarider/check_docker/internal/check"
 	"github.com/tunarider/check_docker/internal/exit"
+	"github.com/tunarider/check_docker/internal/renderer"
 	"github.com/tunarider/nagios-go-sdk/nagios"
 	"github.com/urfave/cli/v2"
 	"strings"
@@ -24,40 +25,32 @@ func listNodeNames(nodes []swarm.Node) []string {
 	return nodeNames
 }
 
-type nodeMessageResolver func([]swarm.Node, []nagios.Performance) string
-
-func okNodeMessage(_ []swarm.Node, performances []nagios.Performance) string {
+func notOkNodeMessage(nodes interface{}, performances []nagios.Performance) string {
+	n := nodes.([]swarm.Node)
 	return nagios.MessageWithPerformance(
-		"No problem",
-		performances,
-	)
-}
-
-func notOkNodeMessage(nodes []swarm.Node, performances []nagios.Performance) string {
-	return nagios.MessageWithPerformance(
-		strings.Join(listNodeNames(nodes), ", "),
+		strings.Join(listNodeNames(n), ", "),
 		performances,
 	)
 }
 
 type nodeResultRenderer func([]swarm.Node, []nagios.Performance) cli.ExitCoder
 
-func nodeRenderer(exitFunc exit.ExitForNagios, msgResolver nodeMessageResolver) nodeResultRenderer {
+func nodeRenderer(exitFunc exit.ExitForNagios, msgResolver renderer.MessageResolver) nodeResultRenderer {
 	return func(nodes []swarm.Node, performances []nagios.Performance) cli.ExitCoder {
 		return exitFunc(msgResolver(nodes, performances))
 	}
 }
 
-func getNodeRenderer(state nagios.State) nodeResultRenderer {
+func getNodeRendererFunc(state nagios.State) (exit.ExitForNagios, renderer.MessageResolver) {
 	switch state {
 	case nagios.StateOk:
-		return nodeRenderer(exit.Ok, okNodeMessage)
+		return exit.Ok, renderer.NoProblemMessage
 	case nagios.StateWarning:
-		return nodeRenderer(exit.Warning, notOkNodeMessage)
+		return exit.Warning, notOkNodeMessage
 	case nagios.StateCritical:
-		return nodeRenderer(exit.Critical, notOkNodeMessage)
+		return exit.Critical, notOkNodeMessage
 	default:
-		return nodeRenderer(exit.Unknown, notOkNodeMessage)
+		return exit.Unknown, notOkNodeMessage
 	}
 }
 
@@ -72,6 +65,6 @@ func Node(c *cli.Context) error {
 		return exit.Unknown("Failed to receive Docker node list")
 	}
 	state, badNodes, performances := check.CheckNodes(nodes)
-	rdr := getNodeRenderer(state)
+	rdr := nodeRenderer(getNodeRendererFunc(state))
 	return rdr(badNodes, performances)
 }
