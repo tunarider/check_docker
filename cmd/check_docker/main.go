@@ -13,6 +13,12 @@ func main() {
 			Aliases: []string{"e"},
 		},
 	}
+	networkFlags := []cli.Flag{
+		&cli.StringFlag{
+			Name:    "network",
+			Aliases: []string{"n"},
+		},
+	}
 	app := cli.App{
 		Name:    "check_docker",
 		Usage:   "Check docker status",
@@ -28,6 +34,12 @@ func main() {
 				Aliases: []string{"s"},
 				Action:  cmd.Service,
 				Flags:   serviceFlags,
+			},
+			{
+				Name:    "network",
+				Aliases: []string{"n"},
+				Action:  cmd.Network,
+				Flags:   networkFlags,
 			},
 		},
 	}

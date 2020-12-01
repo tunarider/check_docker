@@ -64,7 +64,7 @@ func Node(c *cli.Context) error {
 	if err != nil {
 		return exit.Unknown("Failed to receive Docker node list")
 	}
-	state, badNodes, performances := check.CheckNodes(nodes)
+	state, badNodes, performances := check.Nodes(nodes)
 	rdr := nodeRenderer(getNodeRendererFunc(state))
 	return rdr(badNodes, performances)
 }

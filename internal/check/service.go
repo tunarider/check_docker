@@ -9,7 +9,7 @@ import (
 	"github.com/tunarider/nagios-go-sdk/nagios"
 )
 
-func CheckServiceStatus(services []swarm.Service, tg taskGetter) (nagios.State, []swarm.Service, []nagios.Performance) {
+func ServiceStatus(services []swarm.Service, tg taskGetter) (nagios.State, []swarm.Service, []nagios.Performance) {
 	var state = nagios.StateOk
 	var badServices []swarm.Service
 	var performances []nagios.Performance

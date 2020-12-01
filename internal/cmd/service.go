@@ -94,7 +94,7 @@ func Service(c *cli.Context) error {
 	}
 	services = filterService(services, c.StringSlice("exclude"))
 	getRunningTasks := check.RunningTaskGetter(ctx, dc)
-	state, badServices, performances := check.CheckServiceStatus(services, getRunningTasks)
+	state, badServices, performances := check.ServiceStatus(services, getRunningTasks)
 	rdr := serviceRenderer(getServiceRendererFunc(state))
 	return rdr(badServices, performances)
 }

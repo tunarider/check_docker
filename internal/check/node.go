@@ -25,7 +25,7 @@ func checkNode(node swarm.Node) (nagios.State, nagios.Performance) {
 	return nagios.StateOk, p
 }
 
-func CheckNodes(nodes []swarm.Node) (nagios.State, []swarm.Node, []nagios.Performance) {
+func Nodes(nodes []swarm.Node) (nagios.State, []swarm.Node, []nagios.Performance) {
 	var state = nagios.StateOk
 	var badNodes []swarm.Node
 	var performances []nagios.Performance
