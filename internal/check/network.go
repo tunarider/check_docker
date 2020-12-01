@@ -22,7 +22,9 @@ func checkNetwork(network types.NetworkResource, inspector networkInspector) (na
 	if err != nil {
 		return nagios.StateUnknown, p
 	}
-	p.Value = len(n.Containers) + 2
+	for _, s := range n.Services {
+		p.Value += len(s.Tasks) + 1
+	}
 	_, ipnet, err := net.ParseCIDR(n.IPAM.Config[0].Subnet)
 	if err != nil {
 		return nagios.StateUnknown, p
@@ -44,7 +46,7 @@ type networkInspector func(types.NetworkResource) (types.NetworkResource, error)
 
 func NetworkInspector(ctx context.Context, dc *client.Client) networkInspector {
 	return func(network types.NetworkResource) (types.NetworkResource, error) {
-		return dc.NetworkInspect(ctx, network.ID)
+		return dc.NetworkInspect(ctx, network.ID, types.NetworkInspectOptions{Verbose: true})
 	}
 }
 
