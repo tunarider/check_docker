@@ -40,7 +40,7 @@ func checkNetwork(network types.NetworkResource, inspector networkInspector) (na
 	}
 }
 
-type networkInspector func(resource types.NetworkResource) (types.NetworkResource, error)
+type networkInspector func(types.NetworkResource) (types.NetworkResource, error)
 
 func NetworkInspector(ctx context.Context, dc *client.Client) networkInspector {
 	return func(network types.NetworkResource) (types.NetworkResource, error) {
