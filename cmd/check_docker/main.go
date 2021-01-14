@@ -32,7 +32,7 @@ func main() {
 	app := cli.App{
 		Name:    "check_docker",
 		Usage:   "Check docker status",
-		Version: "v0.2.0",
+		Version: "v0.3.0",
 		Commands: []*cli.Command{
 			{
 				Name:    "node",
