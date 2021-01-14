@@ -9,7 +9,7 @@ import (
 	"net"
 )
 
-func checkNetwork(network types.NetworkResource, inspector networkInspector) (nagios.State, nagios.Performance) {
+func checkNetwork(network types.NetworkResource, inspector networkInspector, warning float64, critical float64) (nagios.State, nagios.Performance) {
 	p := nagios.Performance{
 		Label:    network.Name,
 		Value:    0,
@@ -31,8 +31,8 @@ func checkNetwork(network types.NetworkResource, inspector networkInspector) (na
 	}
 	ones, bits := ipnet.Mask.Size()
 	p.Max = int(math.Pow(2, float64(bits-ones)))
-	p.Warning = int(float64(p.Max) * 0.8)
-	p.Critical = int(float64(p.Max) * 0.9)
+	p.Warning = int(float64(p.Max) * warning)
+	p.Critical = int(float64(p.Max) * critical)
 	if p.Value >= p.Critical {
 		return nagios.StateCritical, p
 	} else if p.Value >= p.Warning {
@@ -50,12 +50,12 @@ func NetworkInspector(ctx context.Context, dc *client.Client) networkInspector {
 	}
 }
 
-func Networks(networks []types.NetworkResource, inspector networkInspector) (nagios.State, []types.NetworkResource, []nagios.Performance) {
+func Networks(networks []types.NetworkResource, inspector networkInspector, warning float64, critical float64) (nagios.State, []types.NetworkResource, []nagios.Performance) {
 	var state = nagios.StateOk
 	var badNetworks []types.NetworkResource
 	var performances []nagios.Performance
 	for _, n := range networks {
-		s, p := checkNetwork(n, inspector)
+		s, p := checkNetwork(n, inspector, warning, critical)
 		if s != nagios.StateOk {
 			badNetworks = append(badNetworks, n)
 		}

@@ -18,6 +18,16 @@ func main() {
 			Name:    "network",
 			Aliases: []string{"n"},
 		},
+		&cli.Float64Flag{
+			Name:    "warning",
+			Aliases: []string{"w"},
+			Value:   0.8,
+		},
+		&cli.Float64Flag{
+			Name:    "critical",
+			Aliases: []string{"c"},
+			Value:   0.9,
+		},
 	}
 	app := cli.App{
 		Name:    "check_docker",

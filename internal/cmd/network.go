@@ -74,7 +74,7 @@ func Network(c *cli.Context) error {
 		return exit.Unknown("Failed to receive Docker network list")
 	}
 	networkInspector := check.NetworkInspector(ctx, dc)
-	state, badNetworks, performances := check.Networks(networks, networkInspector)
+	state, badNetworks, performances := check.Networks(networks, networkInspector, c.Float64("warning"), c.Float64("critical"))
 	rdr := networkRenderer(getNetworkRendererFunc(state))
 	return rdr(badNetworks, performances)
 }
