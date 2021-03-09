@@ -9,7 +9,7 @@ type MessageResolver func(interface{}, []nagios.Performance) string
 
 func NoProblemMessage(_ interface{}, performances []nagios.Performance) string {
 	return nagios.MessageWithPerformance(
-		"No problem",
+		"It is optimal",
 		performances,
 	)
 }
