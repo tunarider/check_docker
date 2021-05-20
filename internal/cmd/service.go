@@ -93,8 +93,8 @@ func Service(c *cli.Context) error {
 		return exit.Unknown("Failed to receive Docker service list")
 	}
 	services = filterService(services, c.StringSlice("exclude"))
-	getRunningTasks := check.RunningTaskGetter(ctx, dc)
-	state, badServices, performances := check.ServiceStatus(services, getRunningTasks)
+	getDesiredTasks := check.DesiredTaskGetter(ctx, dc)
+	state, badServices, performances := check.ServiceStatus(services, getDesiredTasks)
 	rdr := serviceRenderer(getServiceRendererFunc(state))
 	return rdr(badServices, performances)
 }
