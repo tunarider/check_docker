@@ -8,10 +8,11 @@ import (
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
+	"github.com/tunarider/check_docker/internal/util"
 	"github.com/tunarider/nagios-go-sdk/nagios"
 )
 
-func ServiceStatus(services []swarm.Service, tg taskGetter) (nagios.State, []swarm.Service, []nagios.Performance) {
+func ServiceStatus(services []swarm.Service, tg taskGetter, enf util.ExpectedNodeFilter) (nagios.State, []swarm.Service, []nagios.Performance) {
 	var state = nagios.StateOk
 	var badServices []swarm.Service
 	var performances []nagios.Performance
@@ -26,7 +27,7 @@ func ServiceStatus(services []swarm.Service, tg taskGetter) (nagios.State, []swa
 			performances = append(performances, p)
 			state = nagios.ResolveState(state, s)
 		} else {
-			s, p = checkGlobalService(service, tg)
+			s, p = checkGlobalService(service, tg, enf)
 			if s != nagios.StateOk {
 				badServices = append(badServices, service)
 			}
@@ -37,9 +38,9 @@ func ServiceStatus(services []swarm.Service, tg taskGetter) (nagios.State, []swa
 	return state, badServices, performances
 }
 
-func checkGlobalService(service swarm.Service, tg taskGetter) (nagios.State, nagios.Performance) {
-	desiredTasks, err := tg(service)
-	desire := len(desiredTasks)
+func checkGlobalService(service swarm.Service, tg taskGetter, enf util.ExpectedNodeFilter) (nagios.State, nagios.Performance) {
+	expectedNodes := enf(service)
+	desire := len(expectedNodes)
 	p := nagios.Performance{
 		Label:    service.Spec.Name,
 		Value:    0,
@@ -48,7 +49,11 @@ func checkGlobalService(service swarm.Service, tg taskGetter) (nagios.State, nag
 		Min:      0,
 		Max:      desire,
 	}
-	tasks := filterRunningTasks(desiredTasks)
+	tasks, err := tg(service)
+	if err != nil {
+		return nagios.StateUnknown, p
+	}
+	tasks = filterRunningTasks(tasks)
 	if err != nil {
 		return nagios.StateUnknown, p
 	}

@@ -2,16 +2,18 @@ package cmd
 
 import (
 	"context"
+	"regexp"
+	"strings"
+
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 	"github.com/tunarider/check_docker/internal/check"
 	"github.com/tunarider/check_docker/internal/exit"
 	"github.com/tunarider/check_docker/internal/renderer"
+	"github.com/tunarider/check_docker/internal/util"
 	"github.com/tunarider/nagios-go-sdk/nagios"
 	"github.com/urfave/cli/v2"
-	"regexp"
-	"strings"
 )
 
 func notOkServiceMessage(services interface{}, performances []nagios.Performance) string {
@@ -94,7 +96,14 @@ func Service(c *cli.Context) error {
 	}
 	services = filterService(services, c.StringSlice("exclude"))
 	getDesiredTasks := check.DesiredTaskGetter(ctx, dc)
-	state, badServices, performances := check.ServiceStatus(services, getDesiredTasks)
+
+	nodes, err := dc.NodeList(ctx, types.NodeListOptions{})
+	if err != nil {
+		return exit.Unknown("Failed to receive Docker node list")
+	}
+	filterExpectedNode := util.ConstraintFilter(nodes)
+
+	state, badServices, performances := check.ServiceStatus(services, getDesiredTasks, filterExpectedNode)
 	rdr := serviceRenderer(getServiceRendererFunc(state))
 	return rdr(badServices, performances)
 }
