@@ -2,15 +2,18 @@ package cmd
 
 import (
 	"context"
+	"errors"
+	"strings"
+
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 	"github.com/tunarider/check_docker/internal/check"
 	"github.com/tunarider/check_docker/internal/exit"
 	"github.com/tunarider/check_docker/internal/renderer"
 	"github.com/tunarider/nagios-go-sdk/nagios"
 	"github.com/urfave/cli/v2"
-	"strings"
 )
 
 func notOkNetworkMessage(networks interface{}, performances []nagios.Performance) string {
@@ -61,20 +64,56 @@ func getNetworkRendererFunc(state nagios.State) (exit.ExitForNagios, renderer.Me
 	}
 }
 
+func getVerboseNetworks(ctx context.Context, dc *client.Client) ([]types.NetworkResource, error) {
+	var verboseNetworks []types.NetworkResource
+
+	f := filters.NewArgs()
+	f.Add("driver", "overlay")
+	networks, err := dc.NetworkList(ctx, types.NetworkListOptions{Filters: f})
+	if err != nil {
+		return verboseNetworks, errors.New("Failed to receive Docker network list")
+	}
+
+	for _, network := range networks {
+		n, err := dc.NetworkInspect(ctx, network.ID, types.NetworkInspectOptions{Verbose: true})
+		if err != nil {
+			return verboseNetworks, errors.New("Failed to inspect Docker network")
+		}
+		verboseNetworks = append(verboseNetworks, n)
+	}
+	return verboseNetworks, nil
+}
+
 func Network(c *cli.Context) error {
 	ctx := context.Background()
 	dc, err := client.NewEnvClient()
 	if err != nil {
 		return exit.Unknown("Failed to connect to Docker")
 	}
-	f := filters.NewArgs()
-	f.Add("driver", "overlay")
-	networks, err := dc.NetworkList(ctx, types.NetworkListOptions{Filters: f})
+
+	networks, err := getVerboseNetworks(ctx, dc)
 	if err != nil {
-		return exit.Unknown("Failed to receive Docker network list")
+		return exit.Unknown(err.Error())
 	}
-	networkInspector := check.NetworkInspector(ctx, dc)
-	state, badNetworks, performances := check.Networks(networks, networkInspector, c.Float64("warning"), c.Float64("critical"))
+
+	tg := check.DesiredTaskGetter(ctx, dc)
+	services, err := dc.ServiceList(ctx, types.ServiceListOptions{})
+	if err != nil {
+		return exit.Unknown("Failed to receive Docker service list")
+	}
+
+	var emptyServices []swarm.Service
+	for _, service := range services {
+		tasks, err := tg(service)
+		if err != nil {
+			return exit.Unknown("Failed to receive task list")
+		}
+		if len(tasks) == 0 {
+			emptyServices = append(emptyServices, service)
+		}
+	}
+
+	state, badNetworks, performances := check.Networks(networks, emptyServices, c.Float64("warning"), c.Float64("critical"))
 	rdr := networkRenderer(getNetworkRendererFunc(state))
 	return rdr(badNetworks, performances)
 }
