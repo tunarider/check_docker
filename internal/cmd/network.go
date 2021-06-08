@@ -7,11 +7,11 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 	"github.com/tunarider/check_docker/internal/check"
 	"github.com/tunarider/check_docker/internal/exit"
 	"github.com/tunarider/check_docker/internal/renderer"
+	"github.com/tunarider/check_docker/internal/util"
 	"github.com/tunarider/nagios-go-sdk/nagios"
 	"github.com/urfave/cli/v2"
 )
@@ -96,24 +96,14 @@ func Network(c *cli.Context) error {
 		return exit.Unknown(err.Error())
 	}
 
-	tg := check.DesiredTaskGetter(ctx, dc)
-	services, err := dc.ServiceList(ctx, types.ServiceListOptions{})
+	emptyServices, err := util.GetEmptyService(ctx, dc)
 	if err != nil {
-		return exit.Unknown("Failed to receive Docker service list")
+		return exit.Unknown(err.Error())
 	}
 
-	var emptyServices []swarm.Service
-	for _, service := range services {
-		tasks, err := tg(service)
-		if err != nil {
-			return exit.Unknown("Failed to receive task list")
-		}
-		if len(tasks) == 0 {
-			emptyServices = append(emptyServices, service)
-		}
-	}
+	checkNetworks := check.MakeNetworksChecker(util.MakeSerivceNetworkFilter(emptyServices), c.Float64("warning"), c.Float64("critical"))
 
-	state, badNetworks, performances := check.Networks(networks, emptyServices, c.Float64("warning"), c.Float64("critical"))
+	state, badNetworks, performances := checkNetworks(networks)
 	rdr := networkRenderer(getNetworkRendererFunc(state))
 	return rdr(badNetworks, performances)
 }

@@ -60,10 +60,12 @@ func Node(c *cli.Context) error {
 	if err != nil {
 		return exit.Unknown("Failed to connect to Docker")
 	}
+
 	nodes, err := dc.NodeList(ctx, types.NodeListOptions{})
 	if err != nil {
 		return exit.Unknown("Failed to receive Docker node list")
 	}
+
 	state, badNodes, performances := check.Nodes(nodes)
 	rdr := nodeRenderer(getNodeRendererFunc(state))
 	return rdr(badNodes, performances)

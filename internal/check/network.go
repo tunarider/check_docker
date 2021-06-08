@@ -5,7 +5,7 @@ import (
 	"net"
 
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/swarm"
+	"github.com/tunarider/check_docker/internal/util"
 	"github.com/tunarider/nagios-go-sdk/nagios"
 )
 
@@ -43,27 +43,22 @@ func checkNetwork(network types.NetworkResource, alpha int, warning float64, cri
 	}
 }
 
-func Networks(networks []types.NetworkResource, emptyServices []swarm.Service, warning float64, critical float64) (nagios.State, []types.NetworkResource, []nagios.Performance) {
-	var state = nagios.StateOk
-	var badNetworks []types.NetworkResource
-	var performances []nagios.Performance
-	for _, n := range networks {
-		var targetServices []swarm.Service
-		for _, s := range emptyServices {
-			for _, sn := range s.Spec.TaskTemplate.Networks {
-				if sn.Target == n.ID {
-					targetServices = append(targetServices, s)
-					continue
-				}
+type networksChecker func(networks []types.NetworkResource) (nagios.State, []types.NetworkResource, []nagios.Performance)
+
+func MakeNetworksChecker(serviceNetworkFilter util.ServiceNetworkFilter, warning float64, critical float64) networksChecker {
+	return func(networks []types.NetworkResource) (nagios.State, []types.NetworkResource, []nagios.Performance) {
+		var state = nagios.StateOk
+		var badNetworks []types.NetworkResource
+		var performances []nagios.Performance
+		for _, n := range networks {
+			a := 1 + len(n.Peers) + len(serviceNetworkFilter(n))
+			s, p := checkNetwork(n, a, warning, critical)
+			if s != nagios.StateOk {
+				badNetworks = append(badNetworks, n)
 			}
+			performances = append(performances, p)
+			state = nagios.ResolveState(state, s)
 		}
-		a := 1 + len(n.Peers) + len(targetServices)
-		s, p := checkNetwork(n, a, warning, critical)
-		if s != nagios.StateOk {
-			badNetworks = append(badNetworks, n)
-		}
-		performances = append(performances, p)
-		state = nagios.ResolveState(state, s)
+		return state, badNetworks, performances
 	}
-	return state, badNetworks, performances
 }

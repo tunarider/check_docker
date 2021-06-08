@@ -99,7 +99,7 @@ func ExtractConstraint(service swarm.Service) (c []constraint) {
 
 type ExpectedNodeFilter func(swarm.Service) []swarm.Node
 
-func ConstraintFilter(nodes []swarm.Node) ExpectedNodeFilter {
+func MakeExpectedNodeFilter(nodes []swarm.Node) ExpectedNodeFilter {
 	return func(service swarm.Service) []swarm.Node {
 		cs := ExtractConstraint(service)
 		if len(cs) == 0 {

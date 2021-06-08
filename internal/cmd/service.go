@@ -90,20 +90,21 @@ func Service(c *cli.Context) error {
 	if err != nil {
 		return exit.Unknown("Failed to connect to Docker")
 	}
+
 	services, err := dc.ServiceList(ctx, types.ServiceListOptions{})
 	if err != nil {
 		return exit.Unknown("Failed to receive Docker service list")
 	}
 	services = filterService(services, c.StringSlice("exclude"))
-	getDesiredTasks := check.DesiredTaskGetter(ctx, dc)
 
 	nodes, err := dc.NodeList(ctx, types.NodeListOptions{})
 	if err != nil {
 		return exit.Unknown("Failed to receive Docker node list")
 	}
-	filterExpectedNode := util.ConstraintFilter(nodes)
 
-	state, badServices, performances := check.ServiceStatus(services, getDesiredTasks, filterExpectedNode)
+	checkServices := check.MakeServicesChecker(util.MakeDesiredTaskGetter(ctx, dc), util.MakeExpectedNodeFilter(nodes))
+
+	state, badServices, performances := checkServices(services)
 	rdr := serviceRenderer(getServiceRendererFunc(state))
 	return rdr(badServices, performances)
 }
