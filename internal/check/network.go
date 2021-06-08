@@ -31,7 +31,7 @@ func checkNetwork(network types.NetworkResource, alpha int, warning float64, cri
 	}
 	ones, bits := ipnet.Mask.Size()
 
-	p.Max = int(math.Pow(2, float64(bits-ones)))
+	p.Max = int(math.Pow(2, float64(bits-ones))) - 1
 	p.Warning = int(float64(p.Max) * warning)
 	p.Critical = int(float64(p.Max) * critical)
 	if p.Value >= p.Critical {
